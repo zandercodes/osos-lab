@@ -19,6 +19,8 @@ static const void *osos_resource_next(void *bank, uint32_t *id, uint32_t *size)
 static void osos_string_init(struct osos_string *s, const char *text) { s->data = text; }
 static void osos_string_destroy(struct osos_string *s) { (void)s; }
 static uint32_t name_id;
+static int language = -1;
+static int osos_ui_language(void) { return language; }
 static uint32_t *osos_resource_name_slot(const struct osos_string *s)
 {
     (void)s;
@@ -41,14 +43,34 @@ static int bank;
 const struct cfw_resource cfw_resources[] = {
     {0x4954454d, 26, sizeof(main_copy), (const unsigned char *)main_copy},
     {0x4954454d, 27, sizeof(music_copy), (const unsigned char *)music_copy},
+    {0x53747220, 200, 14, (const unsigned char *)"%1$s: %2$u%%"},
+    {0x53747220, 201, 3, (const unsigned char *)"%s"},
+    {0x53747220, 202, 3, (const unsigned char *)"%u"},
+    {0x53747220, 203, 8, (const unsigned char *)"100%%!"},
 };
-const uint32_t cfw_resource_count = 2;
+const uint32_t cfw_resource_count = 6;
 const struct cfw_resource_name cfw_resource_names[] = {{"AlbumArtists", ALBUM_ARTISTS}};
 const uint32_t cfw_resource_name_count = 1;
+const struct cfw_translation cfw_translations[] = {
+    {100, 4, (const unsigned char *)"Deutsch"},
+    {100, 2, (const unsigned char *)"Francais"},
+    {101, 0, (const unsigned char *)"English"},
+    {200, 4, (const unsigned char *)"%2$u%% - %1$s %1$s"},
+};
+const uint32_t cfw_translation_count = 4;
+const struct cfw_format_spec cfw_formats[] = {
+    {200, "su"}, {201, "s"}, {202, "u"}, {203, ""},
+};
+const uint32_t cfw_format_count = 4;
 
 static void osos_resource_set(void *target, uint32_t type, uint32_t id,
                               const void *data, uint32_t size)
 {
+    if (type == 0x53747220) {
+        assert(target == &bank && id >= 200 && id <= 203 && data && size);
+        installed++;
+        return;
+    }
     assert(target == &bank && type == 0x4954454d && (id == 26 || id == 27));
     assert(size == (id == 26 ? sizeof(main_copy) : sizeof(music_copy)));
     memcpy(id == 26 ? main_override : music_override, data, size);
@@ -67,6 +89,43 @@ static void register_items(uint32_t type)
 
 int main(void)
 {
+    char formatted[64];
+    assert(!strcmp(cfw_string(999), ""));
+    assert(cfw_format(formatted, sizeof(formatted), 200, "value %u", (uint32_t)42));
+    assert(!strcmp(formatted, "value %u: 42%"));
+    language = 4;
+    cfw_format(formatted, sizeof(formatted), 200, "Song", (uint32_t)3);
+    assert(!strcmp(formatted, "3% - Song Song"));
+    language = 20;
+    cfw_format(formatted, sizeof(formatted), 200, "Song", (uint32_t)0);
+    assert(!strcmp(formatted, "Song: 0%"));
+    cfw_format(formatted, sizeof(formatted), 202, UINT32_MAX);
+    assert(!strcmp(formatted, "4294967295"));
+    cfw_format(formatted, sizeof(formatted), 203);
+    assert(!strcmp(formatted, "100%!"));
+    cfw_format(formatted, sizeof(formatted), 201, (const char *)NULL);
+    assert(!*formatted);
+    assert(!cfw_format(NULL, 0, 201, "ignored"));
+    cfw_format(formatted, 1, 201, "x");
+    assert(!*formatted);
+    cfw_format(formatted, 3, 201, "A\xc3\xa4Z");
+    assert(!strcmp(formatted, "A"));
+    cfw_format(formatted, 4, 201, "A\xc3\xa4Z");
+    assert(!strcmp(formatted, "A\xc3\xa4"));
+    cfw_format(formatted, sizeof(formatted), 999);
+    assert(!*formatted);
+    language = -1;
+    assert(!cfw_translated_string(100));
+    language = 4;
+    assert(!strcmp(cfw_translated_string(100), "Deutsch"));
+    assert(!cfw_translated_string(999));
+    language = 0;
+    assert(!cfw_translated_string(100));
+    assert(!strcmp(cfw_translated_string(101), "English"));
+    language = 2;
+    assert(!strcmp(cfw_translated_string(100), "Francais"));
+    language = 20;
+    assert(!cfw_translated_string(100));
     for (unsigned i = 0; i < 3; i++)
         main_registry[main_stock[i].id] = &main_stock[i];
     for (unsigned i = 0; i < 2; i++)

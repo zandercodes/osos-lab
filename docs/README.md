@@ -8,6 +8,7 @@ not establish device behavior for new changes.
 - [Boot sequence](boot.md): system selection and Apple handoff.
 - [NOR bootloader](nor.md): firmware volume, drivers and image loading.
 - [OSOS runtime](osos.md): relocation, memory, storage and audio.
+- [UI languages](languages.md): Apple 2.0.5 language IDs and `.lo` catalogs.
 
 Input fingerprints and analysis are retained in [firmware](../firmware/) and [analysis profiles](../ghidra/profiles/) and
 [ghidra/analysis](../ghidra/analysis/).

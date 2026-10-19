@@ -4,6 +4,8 @@
 import struct
 from dataclasses import dataclass
 
+from .model import Text
+
 
 @dataclass
 class Template:
@@ -167,6 +169,8 @@ class Resources:
             for entry in templates
         }
         self.added = {}
+        self.translations = {}
+        self.formats = {}
         self.names = {}
         self.next_id = 0x0CF00000
 
@@ -213,13 +217,20 @@ class Resources:
         if string_id is None:
             string_id = self.allocate()
         source_id = self.allocate()
-        self.add("Str ", string_id, text.encode("utf-8") + b"\0")
+        self.string(string_id, text)
         self.add(
             "SORC",
             source_id,
             pack_blocks([(0x534F5243, struct.pack("<III", 0x80, string_id, 1))]),
         )
         return source_id
+
+    def string(self, string_id, text):
+        if isinstance(text, str):
+            text = Text(text)
+        self.add("Str ", string_id, text.default.encode("utf-8") + b"\0")
+        for language, translated in sorted(text.translations.items()):
+            self.translations[string_id, language] = translated.encode("utf-8") + b"\0"
 
     def current(self, kind, resource_id):
         """Include earlier contributions when extending a shared native resource."""

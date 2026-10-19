@@ -116,5 +116,32 @@ def emit_resources(resources):
         f"const uint32_t cfw_resource_name_count = {len(resources.names)};",
         "",
     ]
+    translations = []
+    for index, ((string_id, language), data) in enumerate(
+        resources.translations.items()
+    ):
+        encoded = ", ".join(f"0x{byte:02x}" for byte in data)
+        lines.append(
+            f"static const unsigned char translation_{index}[] = {{{encoded}}};"
+        )
+        translations.append(f"    {{{string_id:#x}, {language}, translation_{index}}},")
+    lines += [
+        "const struct cfw_translation cfw_translations[] = {",
+        *(translations or ["    {0, 0, 0},"]),
+        "};",
+        f"const uint32_t cfw_translation_count = {len(translations)};",
+        "",
+    ]
+    formats = [
+        f'    {{{resource_id:#x}, "{signature}"}},'
+        for resource_id, signature in resources.formats.items()
+    ]
+    lines += [
+        "const struct cfw_format_spec cfw_formats[] = {",
+        *(formats or ['    {0, ""},']),
+        "};",
+        f"const uint32_t cfw_format_count = {len(formats)};",
+        "",
+    ]
 
     return lines

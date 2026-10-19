@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
 <ui>
-  <toggle id="CFW_DarkMode" title="Dark Mode"/>
+  <toggle id="CFW_DarkMode" title="@CFW_DarkMode_Title"/>
   <settings-entry menu="CFW_DarkMode" after="SettingsMenu_ListItem_Brightness"/>
 </ui>

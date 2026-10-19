@@ -5,10 +5,30 @@ from dataclasses import dataclass, field
 
 
 @dataclass
+class Text:
+    default: str
+    translations: dict[int, str] = field(default_factory=dict)
+
+    @classmethod
+    def join(cls, *parts):
+        languages = {language for part in parts for language in part.translations}
+        return cls(
+            "".join(part.default for part in parts),
+            {
+                language: "".join(
+                    part.translations.get(language, part.default) for part in parts
+                )
+                for language in languages
+            },
+        )
+
+
+@dataclass
 class Values:
     name: str
     numbers: list[int] = field(default_factory=list)
     labels: list[str] = field(default_factory=list)
+    suffix: str = ""
 
 
 @dataclass
@@ -21,6 +41,7 @@ class Item:
     default_index: int = 0
     text_file: str = ""
     items: list["Item"] = field(default_factory=list)
+    unknown: str = "Unknown"
 
 
 @dataclass
@@ -39,8 +60,27 @@ class Document:
     after: str | int = ""
     open_action: str = ""
     strings: dict[str, str] = field(default_factory=dict)
+    translations: dict[str, dict[int, str]] = field(default_factory=dict)
+    formats: dict[str, str] = field(default_factory=dict)
     events: list[ScreenEvent] = field(default_factory=list)
     music_entry: dict[str, str] | None = None
+
+    def text(self, value):
+        if isinstance(value, Text):
+            return value
+        if value.startswith("@@"):
+            return Text(value[1:])
+        if not value.startswith("@"):
+            return Text(value)
+        name = value[1:]
+        if name not in self.strings:
+            raise ValueError(f"Undefined UI string reference: {value}")
+        return Text(self.strings[name], self.translations.get(name, {}))
+
+    def labels(self, name):
+        values = self.values[name]
+        suffix = self.text(values.suffix)
+        return [Text.join(self.text(label), suffix) for label in values.labels]
 
 
 @dataclass

@@ -3,6 +3,7 @@
 #include "dark_mode.h"
 #include "osos.h"
 #include "patch.h"
+#include "resources.h"
 
 void cfw_bitmap_view_load_original(void *view);
 /* Stock lookups bypass the hook for pixel matching and light-mode restoration. */
@@ -11,6 +12,11 @@ void cfw_bitmap_cache_load_original(void *cache);
 
 PATCH_ARM const void *cfw_bitmap_resource_get(void *service, uint32_t type, uint32_t id)
 {
+    if (type == OSOS_PROPERTY_STRING) {
+        const void *translated = cfw_translated_string(id);
+        if (translated)
+            return translated;
+    }
     if (type == OSOS_RESOURCE_BMAP && cfw_dark_mode_enabled()) {
         for (uint32_t i = 0; i < cfw_bitmap_asset_count; i++) {
             if (cfw_bitmap_assets[i].id == id)

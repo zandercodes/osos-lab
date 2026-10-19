@@ -5,6 +5,7 @@
 #define CFW_OSOS_H
 #define CFW_PATCH_H
 #define PATCH_ARM
+#define OSOS_PROPERTY_STRING 0x53747220
 #include "../../../payload/assets.h"
 #include "../../../payload/native/bindings.h"
 
@@ -20,6 +21,12 @@ static int resource_lookups;
 static int color_lookups;
 static const uint32_t stock_color = 0x00ffffff, replacement_color = 0x00fffffe;
 static int visible = 1;
+static const char translated[] = "Test translation";
+
+const void *cfw_translated_string(uint32_t id)
+{
+    return id == 456 ? translated : NULL;
+}
 
 static void put_pointer(void *base, unsigned offset, const void *pointer)
 {
@@ -63,6 +70,10 @@ static void *get_resource(void *service, uint32_t type, uint32_t id)
 {
     resource_lookups++;
     (void)service;
+    if (type == OSOS_PROPERTY_STRING) {
+        assert(id == 123);
+        return (void *)stock;
+    }
     if (type == 0x434f4c52) {
         assert(id == 123);
         return (void *)&stock_color;
@@ -231,6 +242,10 @@ static void check_dynamic_dark_source(void)
 
 int main(void)
 {
+    assert(cfw_bitmap_resource_get(NULL, OSOS_PROPERTY_STRING, 456) == translated);
+    assert(!resource_lookups);
+    assert(cfw_bitmap_resource_get(NULL, OSOS_PROPERTY_STRING, 123) == stock);
+    assert(resource_lookups == 1);
     dark = 0;
     assert(cfw_bitmap_resource_get(NULL, 0x424d6170, 0x0dad012a) == stock);
     dark = 1;
