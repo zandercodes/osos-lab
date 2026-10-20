@@ -118,7 +118,7 @@ def emit_resources(resources):
     ]
     translations = []
     for index, ((string_id, language), data) in enumerate(
-        resources.translations.items()
+        sorted(resources.translations.items())
     ):
         encoded = ", ".join(f"0x{byte:02x}" for byte in data)
         lines.append(

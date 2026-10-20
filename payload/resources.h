@@ -28,6 +28,7 @@ extern const struct cfw_resource cfw_resources[];
 extern const uint32_t cfw_resource_count;
 extern const struct cfw_resource_name cfw_resource_names[];
 extern const uint32_t cfw_resource_name_count;
+/* Sorted by resource ID, then language, for binary lookup. */
 extern const struct cfw_translation cfw_translations[];
 extern const uint32_t cfw_translation_count;
 extern const struct cfw_format_spec cfw_formats[];

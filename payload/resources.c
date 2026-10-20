@@ -8,16 +8,26 @@
 const void *cfw_translated_string(uint32_t id)
 {
     int language = -1;
-    for (uint32_t index = 0; index < cfw_translation_count; index++) {
-        const struct cfw_translation *translation = &cfw_translations[index];
-        if (translation->id != id)
-            continue;
-        if (language < 0)
-            language = osos_ui_language();
-        if (language < 0)
-            return 0;
-        if (translation->language == (uint32_t)language)
-            return translation->data;
+    uint32_t first = 0, end = cfw_translation_count;
+    while (first < end) {
+        uint32_t middle = first + (end - first) / 2;
+        const struct cfw_translation *translation = &cfw_translations[middle];
+        if (translation->id < id) {
+            first = middle + 1;
+        } else if (translation->id > id) {
+            end = middle;
+        } else {
+            if (language < 0)
+                language = osos_ui_language();
+            if (language < 0)
+                return 0;
+            if (translation->language < (uint32_t)language)
+                first = middle + 1;
+            else if (translation->language > (uint32_t)language)
+                end = middle;
+            else
+                return translation->data;
+        }
     }
     return 0;
 }

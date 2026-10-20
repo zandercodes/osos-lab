@@ -42,6 +42,29 @@ def menu(rows):
 
 
 class UiTests(unittest.TestCase):
+    def test_translation_codegen_sorts_by_resource_id_and_language(self):
+        resources = Resources([])
+        resources.translations.update(
+            {
+                (200, 4): b"last\0",
+                (100, 4): b"second\0",
+                (101, 0): b"third\0",
+                (100, 2): b"first\0",
+            }
+        )
+        output = "\n".join(emit_resources(resources))
+        table = output.split("cfw_translations[] = {\n", 1)[1].split("};", 1)[0]
+        self.assertEqual(
+            table,
+            "    {0x64, 2, translation_0},\n"
+            "    {0x64, 4, translation_1},\n"
+            "    {0x65, 0, translation_2},\n"
+            "    {0xc8, 4, translation_3},\n",
+        )
+        for index, text in enumerate((b"first\0", b"second\0", b"third\0", b"last\0")):
+            encoded = ", ".join(f"0x{byte:02x}" for byte in text)
+            self.assertIn(f"translation_{index}[] = {{{encoded}}};", output)
+
     def test_song_info_loads_catalog_and_generates_format_signatures(self):
         root = Path(__file__).resolve().parents[2]
         metadata = json.loads((root / "firmware/ui.json").read_text())

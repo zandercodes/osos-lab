@@ -20,13 +20,18 @@ static void osos_string_init(struct osos_string *s, const char *text) { s->data 
 static void osos_string_destroy(struct osos_string *s) { (void)s; }
 static uint32_t name_id;
 static int language = -1;
-static int osos_ui_language(void) { return language; }
+static unsigned language_queries, translation_probes;
+static int osos_ui_language(void) { language_queries++; return language; }
 static uint32_t *osos_resource_name_slot(const struct osos_string *s)
 {
     (void)s;
     return &name_id;
 }
+#include "../../../payload/resources.h"
+static const struct cfw_translation *translation_table(void);
+#define cfw_translations translation_table()
 #include "../../../payload/resources.c"
+#undef cfw_translations
 
 enum { ARTISTS = 1, ITUNES_U, NOW_PLAYING, ALBUM_ARTISTS };
 struct row { uint32_t id, visible; };
@@ -52,12 +57,17 @@ const uint32_t cfw_resource_count = 6;
 const struct cfw_resource_name cfw_resource_names[] = {{"AlbumArtists", ALBUM_ARTISTS}};
 const uint32_t cfw_resource_name_count = 1;
 const struct cfw_translation cfw_translations[] = {
-    {100, 4, (const unsigned char *)"Deutsch"},
     {100, 2, (const unsigned char *)"Francais"},
+    {100, 4, (const unsigned char *)"Deutsch"},
     {101, 0, (const unsigned char *)"English"},
     {200, 4, (const unsigned char *)"%2$u%% - %1$s %1$s"},
 };
 const uint32_t cfw_translation_count = 4;
+static const struct cfw_translation *translation_table(void)
+{
+    translation_probes++;
+    return cfw_translations;
+}
 const struct cfw_format_spec cfw_formats[] = {
     {200, "su"}, {201, "s"}, {202, "u"}, {203, ""},
 };
@@ -89,6 +99,28 @@ static void register_items(uint32_t type)
 
 int main(void)
 {
+    for (language = -1; language <= 21; language++) {
+        for (uint32_t id = 0; id <= 201; id++) {
+            const void *expected = NULL;
+            int known_id = 0;
+            for (uint32_t index = 0; index < cfw_translation_count; index++) {
+                const struct cfw_translation *translation = &cfw_translations[index];
+                if (translation->id == id) {
+                    known_id = 1;
+                    if (language >= 0 && translation->language == (uint32_t)language)
+                        expected = translation->data;
+                }
+            }
+            translation_probes = language_queries = 0;
+            assert(cfw_translated_string(id) == expected);
+            assert(translation_probes <= 3);
+            assert(language_queries == (unsigned)known_id);
+        }
+        translation_probes = language_queries = 0;
+        assert(!cfw_translated_string(UINT32_MAX));
+        assert(translation_probes <= 3 && !language_queries);
+    }
+    language = -1;
     char formatted[64];
     assert(!strcmp(cfw_string(999), ""));
     assert(cfw_format(formatted, sizeof(formatted), 200, "value %u", (uint32_t)42));
