@@ -123,7 +123,7 @@ class UiTests(unittest.TestCase):
         ]
         translations = list(resources.translations.values())
         self.assertIn(b"Dark Mode\0", defaults)
-        self.assertIn(b"Dunkelmodus\0", translations)
+        self.assertIn(b"Dunkler Modus\0", translations)
         self.assertIn(b"RepriseOS 1.2.3\0", defaults)
         self.assertIn(b"Build: test-revision\0", defaults)
         self.assertIn(b"Custom firmware for iPod.\0", defaults)
